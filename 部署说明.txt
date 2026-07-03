@@ -1,0 +1,15 @@
+这是 jzbf GitHub Pages 静态部署文件夹。
+
+部署地址：
+https://xiaobangcc006-star.github.io/jzbf/
+
+使用方法：
+1. 打开 GitHub 仓库：https://github.com/xiaobangcc006-star/jzbf
+2. 把本文件夹内的所有内容上传到仓库 main 分支根目录。
+3. 必须包含 index.html、assets 文件夹和 .nojekyll 文件。
+4. 仓库 Settings -> Pages 设置为从 main 分支根目录发布。
+5. 等待 GitHub Pages 刷新后访问：https://xiaobangcc006-star.github.io/jzbf/
+
+注意：
+- 上传的是本文件夹里面的文件，不是再上传这个外层文件夹本身。
+- 如果 GitHub 网页看不到 .nojekyll，没关系；它是隐藏文件，用于避免 GitHub Pages 按 Jekyll 处理资源。
