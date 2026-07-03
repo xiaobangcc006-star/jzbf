@@ -1,0 +1,1718 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="icon" href="data:,">
+  <title>病房新收</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eaf0fb;
+      --panel: #f6f8ff;
+      --ink: #1b2535;
+      --muted: #626d7d;
+      --line: #d9e1ed;
+      --blue: #22aee6;
+      --blue-soft: #e8f8ff;
+      --green: #2a88a8;
+      --green-soft: #e8f8ff;
+      --warn: #b76f11;
+      --danger: #d52257;
+      --shadow: 0 5px 18px rgba(81, 104, 135, 0.08);
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 38%, #e7eef9 100%);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-shell {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 10px 10px calc(92px + env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin: -10px -10px 10px;
+      padding: 10px 10px 8px;
+      background: rgba(238, 244, 253, 0.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(215, 222, 232, 0.9);
+    }
+
+    .title-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      min-height: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .saved-at {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      transform: translateY(-50%);
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .mode-btn {
+      height: 44px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      color: var(--ink);
+      font-weight: 700;
+      border: 1px solid var(--line);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .mode-btn.active {
+      background: var(--blue-soft);
+      color: #0b6d93;
+      border-color: var(--blue);
+    }
+
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    details.section {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    details.section > summary {
+      list-style: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    details.section > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .section-body {
+      padding: 0 12px 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 0;
+      padding: 12px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .section-title::after {
+      content: "展开";
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    details[open] .section-title::after {
+      content: "收起";
+    }
+
+    .section-note {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label.field-label {
+      display: block;
+      color: #526073;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid #d9e1ed;
+      border-radius: 7px;
+      padding: 8px 10px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(34, 174, 230, 0.14);
+    }
+
+    .choice-group {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .choice-group.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .choice-group.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .choice-group.five {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .choice-group.six {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .choice {
+      min-height: 42px;
+      border-radius: 999px;
+      border: 1px solid #d9e1ed;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 700;
+      padding: 6px 4px;
+      line-height: 1.2;
+    }
+
+    .choice.active {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+      color: #0b6d93;
+    }
+
+    .choice.active::before {
+      content: "√ ";
+      font-weight: 900;
+    }
+
+    .mini-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .inline-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .primary-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .action-btn {
+      min-height: 44px;
+      border-radius: 7px;
+      background: #ffffff;
+      border: 1px solid #d9e1ed;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .action-btn.primary {
+      background: var(--blue-soft);
+      color: #0b6d93;
+      border-color: var(--blue);
+    }
+
+    .action-btn.green {
+      background: #edf7fb;
+      color: #277da8;
+      border-color: #b8dfed;
+    }
+
+    .action-btn.warn {
+      background: #fff7ed;
+      color: var(--warn);
+      border-color: #fed7aa;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .score-card {
+      min-height: 92px;
+      border: 1px solid #d5dce6;
+      border-radius: 8px;
+      background: #f8fbff;
+      padding: 9px;
+    }
+
+    .score-name {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .score-value {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      color: var(--blue);
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .score-value span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .risk-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 4px;
+      padding: 2px 7px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .risk-tag.warn {
+      background: #fff7ed;
+      color: var(--warn);
+    }
+
+    .risk-tag.danger {
+      background: #fff0f4;
+      color: var(--danger);
+    }
+
+    .measure-list {
+      margin: 7px 0 0;
+      padding: 0;
+      list-style: none;
+      color: #475467;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .record-box {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid #c7d2df;
+      border-radius: 8px;
+      background: #f8fbff;
+      padding: 10px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+    }
+
+    .bottom-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--line);
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .bottom-grid {
+      max-width: 860px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .bottom-grid button {
+      min-height: 42px;
+      border-radius: 7px;
+      border: 1px solid #d9e1ed;
+      background: #fff;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 2px;
+    }
+
+    .bottom-grid button.primary {
+      grid-column: span 2;
+      background: var(--blue-soft);
+      color: #0b6d93;
+      border-color: var(--blue);
+      font-size: 13px;
+    }
+
+    .bottom-grid button.green {
+      background: #edf7fb;
+      color: #277da8;
+      border-color: #b8dfed;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 92px;
+      transform: translateX(-50%);
+      z-index: 60;
+      min-width: 160px;
+      max-width: 82vw;
+      padding: 9px 13px;
+      border-radius: 8px;
+      background: rgba(17, 24, 39, 0.92);
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+      display: none;
+    }
+
+    .print-preview-shell {
+      background: #d9e1eb;
+      border-radius: 8px;
+      padding: 10px 0;
+      overflow-x: auto;
+    }
+
+    .print-root {
+      width: 794px;
+      margin: 0 auto;
+      color: #000;
+      background: #fff;
+      font-family: "SimSun", "Songti SC", "Microsoft YaHei", serif;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .paper {
+      width: 794px;
+      min-height: 1123px;
+      padding: 44px 46px;
+      background: #fff;
+      break-after: page;
+      page-break-after: always;
+    }
+
+    .paper:last-child {
+      break-after: auto;
+      page-break-after: auto;
+    }
+
+    .print-title {
+      margin: 0 0 12px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .print-subtitle {
+      margin: -6px 0 9px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin-bottom: 9px;
+    }
+
+    .doc-table th,
+    .doc-table td {
+      border: 1px solid #000;
+      padding: 5px 6px;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    .doc-table th {
+      text-align: center;
+      font-weight: 900;
+      background: #f4f4f4;
+    }
+
+    .print-line {
+      display: inline-block;
+      min-width: 70px;
+      border-bottom: 1px solid #000;
+      padding: 0 4px 1px;
+      min-height: 18px;
+    }
+
+    .check {
+      display: inline-block;
+      min-width: 56px;
+      margin-right: 5px;
+      white-space: nowrap;
+    }
+
+    .narrow .check {
+      min-width: 42px;
+    }
+
+    .signature-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 22px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    .muted-print {
+      color: #333;
+    }
+
+    @media (max-width: 430px) {
+      .app-shell {
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .grid-3 {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .choice-group,
+      .choice-group.four,
+      .choice-group.five {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .choice-group.six {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .score-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bottom-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .bottom-grid button.primary {
+        grid-column: span 2;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+
+      html, body {
+        background: #fff;
+      }
+
+      .app-shell,
+      .bottom-bar,
+      .toast {
+        display: none !important;
+      }
+
+      .print-output {
+        display: block !important;
+      }
+
+      .print-root {
+        width: 210mm;
+        margin: 0;
+      }
+
+      .paper {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 12mm;
+        box-shadow: none;
+      }
+    }
+
+    .print-output {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div id="app"></div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-grid">
+      <button type="button" data-command="save">保存</button>
+      <button type="button" data-command="undo">撤销</button>
+      <button type="button" data-command="redo">恢复</button>
+      <button type="button" data-command="clear">清空</button>
+      <button type="button" class="primary" data-command="generate">生成文书</button>
+      <button type="button" class="green" data-command="image">导出图片</button>
+      <button type="button" class="primary" data-command="print">导出PDF</button>
+    </div>
+  </div>
+  <div id="printOutput" class="print-output"></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var STORAGE_KEY = "new-patient-nursing-docs-single-html:v1";
+      var HISTORY_LIMIT = 40;
+      var state = loadDraft() || createDefaultState();
+      var historyStack = [];
+      var redoStack = [];
+      var focusSnapshot = "";
+      normalizeState(state);
+
+      var options = {
+        gender: ["女", "男"],
+        educationLevels: ["文盲", "小学", "中专", "大专以上"],
+        dataSources: ["患者", "家属", "朋友", "其他"],
+        caregivers: ["自我照顾", "夫/妻", "父母", "子女", "亲戚", "保姆", "朋友", "其他"],
+        paymentMethods: ["自费", "公费医疗", "医保", "社保", "商业保险", "他人赔付", "其他"],
+        admissionMethodsInternal: ["步行", "扶持", "轮椅", "平车", "抱入"],
+        admissionMethodsSurgical: ["步行", "扶持", "轮椅", "平车"],
+        allergy: ["无", "有", "不明确"],
+        callResponse: ["能应", "不应"],
+        consciousness: ["清醒", "嗜睡", "昏睡", "浅昏迷", "中昏迷", "深昏迷", "镇静状态"],
+        response: ["切题", "不切题", "失语"],
+        lightReflex: ["灵敏", "迟钝", "消失"],
+        diet: ["自行进食", "协助进食", "经鼻周管", "经鼻肠管", "胃肠造瘘管"],
+        oralMucosa: ["完整", "溃疡", "白斑", "红肿", "其他"],
+        sleep: ["正常", "难入眠", "易醒", "早醒", "多梦"],
+        urination: ["未发现异常", "尿频", "尿急", "尿痛", "尿失禁", "尿潴留", "留置尿管", "其他"],
+        bowel: ["正常", "便秘", "腹泻", "失禁", "造瘘"],
+        activity: ["自如", "活动受限", "无力", "偏瘫", "截肢", "全瘫"],
+        affectedParts: ["左上肢", "右上肢", "左下肢", "右下肢"],
+        selfCare: ["完全自理", "完全不能自理", "部分自理"],
+        skin: ["完整", "苍白", "黄疸", "潮红", "紫绀", "干燥", "出血点", "压疮", "破损", "水肿", "皮疹", "其它"],
+        language: ["清楚", "含糊", "失语"],
+        commonLanguage: ["普通话", "粤语", "其他方言"],
+        yesNo: ["无", "有"],
+        hospitalNotice: ["住院告知书", "物品管理", "作息", "陪探", "订餐", "介绍主管医生", "介绍主管护士"],
+        nursingLevel: ["特级护理", "一级护理", "二级护理", "三级护理"],
+        orderedDiet: ["普食", "低盐低脂", "糖尿病饮食", "半流", "流食", "禁食"],
+        fallHistory: ["无", "一次", "两次及以上"],
+        riskYesNo: ["无", "有"],
+        labAbnormal: ["低血压", "低血糖", "贫血", "电解质异常"],
+        specialDiseases: ["癫痫", "帕金森", "眩晕", "脑卒中后遗症"],
+        woundDressing: ["干燥", "渗血", "渗液"],
+        painPattern: ["间歇性", "持续性"],
+        painDegree: ["轻度", "中度", "重度"],
+        painNature: ["刺痛", "压榨性痛", "刀割样痛", "灼烧痛", "绞痛", "胀痛", "酸痛", "其他"],
+        surgicalRiskItems: ["minorSurgery", "recentMajorSurgery", "varicoseVein", "lungDisease", "majorSurgery60", "cancerHistory", "majorSurgery2to3h", "familyVte", "stroke", "jointReplacement", "hipPelvisFracture", "trauma", "longSurgery"]
+      };
+
+      var surgicalRiskLabels = {
+        minorSurgery: "小手术",
+        recentMajorSurgery: "近1月大手术",
+        varicoseVein: "静脉曲张",
+        lungDisease: "肺部疾病",
+        majorSurgery60: "大手术>60分钟",
+        cancerHistory: "肿瘤病史",
+        majorSurgery2to3h: "手术2-3小时",
+        familyVte: "VTE家族史",
+        stroke: "脑卒中",
+        jointReplacement: "关节置换",
+        hipPelvisFracture: "髋/骨盆骨折",
+        trauma: "严重创伤",
+        longSurgery: "长时间手术"
+      };
+
+      var nursingRecordTemplates = {
+        internal: "内科患者因 “{diagnosis}”{admission}入院，入室时神志{consciousness}，双侧瞳孔等大等圆，对光反射{lightReflex}，直径约{pupilDiameter}；遵医嘱予{nursingLevel}、{diet}饮食，低流量吸氧 1～2L/min；跌倒评分{fallScore}分，{fallRisk}风险，措施详见《跌倒坠床风险评估与护理单》；压疮评分{bradenScore}分，{bradenRisk}风险，措施详见《压疮风险护理单》；已告知家属 24 小时留陪人；密切观察患者头晕情况，完善相关检查，已完成入院宣教及安全告知。",
+        surgical: "外科患者因 “{diagnosis}” 入院，入院时神志{consciousness}，双侧瞳孔等大等圆，对光反射{lightReflex}，直径约{pupilDiameter}；遵医嘱予{nursingLevel}、{diet}饮食；跌倒评分{fallScore}分，{fallRisk}风险，措施详见《跌倒坠床风险评估与护理单》；压疮评分{bradenScore}分，{bradenRisk}风险，措施详见《压疮风险护理单》；已告知家属 24 小时留陪人；密切观察患者疼痛、伤口情况，完善相关检查，已完成入院宣教及安全告知。"
+      };
+
+      function createDefaultState() {
+        return {
+          mode: "internal",
+          patientInfo: {
+            name: "",
+            gender: "女",
+            age: "",
+            nationality: "汉族",
+            educationLevel: "大专以上",
+            occupation: "",
+            department: "",
+            bedNo: "",
+            admissionNo: "",
+            idNo: "",
+            phone: "",
+            contact: "",
+            relation: "",
+            admissionTime: nowLocalValue(),
+            diagnosis: "",
+            dataSources: ["患者"],
+            caregivers: ["自我照顾"],
+            paymentMethods: ["医保"],
+            nurseName: ""
+          },
+          firstRecord: {
+            admissionMethods: ["步行"],
+            allergy: "无",
+            allergyDrug: "",
+            allergyFood: "",
+            allergyOther: "",
+            callResponse: "能应",
+            consciousness: "清醒",
+            response: "切题",
+            pupilLeft: "3",
+            pupilRight: "3",
+            lightReflex: "灵敏",
+            diet: ["自行进食"],
+            chewingDifficulty: false,
+            swallowingDifficulty: false,
+            oralMucosa: ["完整"],
+            sleep: ["正常"],
+            sleepMedication: "",
+            wakeFatigue: "无",
+            urination: ["未发现异常"],
+            bowel: ["正常"],
+            bowelTimes: "1",
+            activity: ["自如"],
+            affectedParts: [],
+            selfCare: "完全自理",
+            skin: ["完整"],
+            skinDetail: "",
+            language: "清楚",
+            commonLanguage: "普通话",
+            smoking: "无",
+            smokingCount: "",
+            drinking: "无",
+            drinkingAmount: "",
+            otherSymptoms: "",
+            hospitalNotice: ["住院告知书", "物品管理", "作息", "陪探", "订餐", "介绍主管医生", "介绍主管护士"],
+            nursingLevel: "二级护理",
+            orderedDiet: "普食",
+            oxygen: "",
+            fallHistory: "无",
+            hypertension: "无",
+            diabetes: "无",
+            highRiskMedication: "无",
+            highRiskMedicationNote: "",
+            visualProblem: false,
+            highRiskMedicationCount: "0",
+            labAbnormal: [],
+            specialDiseases: [],
+            activeCancer: false,
+            previousVte: false,
+            bedRestDays: "0",
+            thrombophilia: false,
+            recentTraumaSurgery: false,
+            heartRespFailure: false,
+            acuteMiStroke: false,
+            infectionRheumatic: false,
+            bmi: "",
+            hormoneTherapy: false,
+            surgicalRiskItems: [],
+            wound: { status: "无", site: "", dressing: ["干燥"] },
+            stoma: { status: "无", type: "", site: "", skin: "", selfCare: "能" },
+            drainage: { status: "无", type: "", site: "", color: "", nature: "", smooth: "是" },
+            pain: { status: "无", site: "", nrs: "0", pattern: "间歇性", degree: "轻度", nature: [] },
+            recordTime: nowLocalValue(),
+            auditorName: "",
+            auditTime: "",
+            note: ""
+          },
+          generatedRecord: "",
+          lastSavedAt: ""
+        };
+      }
+
+      function normalizeState(target) {
+        var defaults = createDefaultState();
+        target.patientInfo = Object.assign({}, defaults.patientInfo, target.patientInfo || {});
+        target.firstRecord = Object.assign({}, defaults.firstRecord, target.firstRecord || {});
+        target.firstRecord.wound = Object.assign({}, defaults.firstRecord.wound, target.firstRecord.wound || {});
+        target.firstRecord.stoma = Object.assign({}, defaults.firstRecord.stoma, target.firstRecord.stoma || {});
+        target.firstRecord.drainage = Object.assign({}, defaults.firstRecord.drainage, target.firstRecord.drainage || {});
+        target.firstRecord.pain = Object.assign({}, defaults.firstRecord.pain, target.firstRecord.pain || {});
+        if (target.patientInfo.caregivers && target.patientInfo.caregivers.indexOf("自理") >= 0) target.patientInfo.caregivers = ["自我照顾"];
+        if (target.firstRecord.diet && target.firstRecord.diet.indexOf("普食") >= 0) target.firstRecord.diet = ["自行进食"];
+        if (target.firstRecord.urination && target.firstRecord.urination.indexOf("正常") >= 0) target.firstRecord.urination = ["未发现异常"];
+        if (target.firstRecord.activity && target.firstRecord.activity.indexOf("正常") >= 0) target.firstRecord.activity = ["自如"];
+        if (target.firstRecord.selfCare === "完全依赖") target.firstRecord.selfCare = "完全不能自理";
+      }
+
+      function nowLocalValue() {
+        var d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+      }
+
+      function clone(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function getByPath(obj, path) {
+        return path.split(".").reduce(function (acc, key) {
+          return acc == null ? undefined : acc[key];
+        }, obj);
+      }
+
+      function setByPath(obj, path, value) {
+        var parts = path.split(".");
+        var target = obj;
+        for (var i = 0; i < parts.length - 1; i += 1) target = target[parts[i]];
+        target[parts[parts.length - 1]] = value;
+      }
+
+      function escapeHtml(value) {
+        return String(value == null ? "" : value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function safe(value, fallback) {
+        var text = String(value == null ? "" : value).trim();
+        return text || (fallback || "");
+      }
+
+      function arrText(values) {
+        if (!values || !values.length) return "";
+        return values.join("、");
+      }
+
+      function num(value) {
+        var n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+      }
+
+      function hasAny(values, keywords) {
+        return (values || []).some(function (value) { return keywords.indexOf(value) >= 0; });
+      }
+
+      function snapshot() {
+        return JSON.stringify({
+          mode: state.mode,
+          patientInfo: state.patientInfo,
+          firstRecord: state.firstRecord,
+          generatedRecord: state.generatedRecord,
+          lastSavedAt: state.lastSavedAt
+        });
+      }
+
+      function restoreFromSnapshot(text) {
+        var parsed = JSON.parse(text);
+        state.mode = parsed.mode || "internal";
+        state.patientInfo = parsed.patientInfo || createDefaultState().patientInfo;
+        state.firstRecord = parsed.firstRecord || createDefaultState().firstRecord;
+        state.generatedRecord = parsed.generatedRecord || "";
+        state.lastSavedAt = parsed.lastSavedAt || "";
+        normalizeState(state);
+      }
+
+      function pushHistory(previous) {
+        if (!previous || previous === snapshot()) return;
+        historyStack.push(previous);
+        if (historyStack.length > HISTORY_LIMIT) historyStack.shift();
+        redoStack = [];
+      }
+
+      function saveDraft(showMessage) {
+        state.lastSavedAt = new Date().toLocaleString("zh-CN", { hour12: false });
+        localStorage.setItem(STORAGE_KEY, snapshot());
+        if (showMessage) toast("已保存到本机");
+        renderHeaderSavedAt();
+      }
+
+      function loadDraft() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : null;
+        } catch (err) {
+          return null;
+        }
+      }
+
+      function toast(text) {
+        var node = document.getElementById("toast");
+        node.textContent = text;
+        node.style.display = "block";
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(function () { node.style.display = "none"; }, 1800);
+      }
+
+      function choiceGroup(path, values, multiple, columns, labelMap) {
+        var current = getByPath(state, path);
+        var list = Array.isArray(current) ? current : [current];
+        var cls = "choice-group" + (columns === 2 ? " two" : columns === 4 ? " four" : columns === 5 ? " five" : columns === 6 ? " six" : "");
+        return '<div class="' + cls + '">' + values.map(function (value) {
+          var active = list.indexOf(value) >= 0;
+          var text = labelMap ? labelMap[value] : value;
+          return '<button type="button" class="choice' + (active ? " active" : "") + '" data-choice="1" data-path="' + escapeHtml(path) + '" data-value="' + escapeHtml(value) + '" data-multiple="' + (multiple ? "1" : "0") + '">' + escapeHtml(text) + '</button>';
+        }).join("") + '</div>';
+      }
+
+      function field(path, label, type, placeholder) {
+        var value = getByPath(state, path);
+        var inputType = type || "text";
+        var attrs = inputType === "range" ? ' min="0" max="10" step="1"' : "";
+        return '<div class="field">' +
+          '<label class="field-label">' + label + '</label>' +
+          '<input type="' + inputType + '"' + attrs + ' data-bind="' + escapeHtml(path) + '" value="' + escapeHtml(value == null ? "" : value) + '" placeholder="' + escapeHtml(placeholder || "") + '">' +
+          '</div>';
+      }
+
+      function fullField(path, label, type, placeholder) {
+        return '<div class="field full">' + field(path, label, type, placeholder).replace('<div class="field">', '').replace('</div>', '') + '</div>';
+      }
+
+      function textArea(path, label, placeholder) {
+        var value = getByPath(state, path) || "";
+        return '<div class="field full">' +
+          '<label class="field-label">' + label + '</label>' +
+          '<textarea data-bind="' + escapeHtml(path) + '" placeholder="' + escapeHtml(placeholder || "") + '">' + escapeHtml(value) + '</textarea>' +
+          '</div>';
+      }
+
+      function selectField(path, label, values) {
+        var value = getByPath(state, path);
+        return '<div class="field">' +
+          '<label class="field-label">' + label + '</label>' +
+          '<select data-bind="' + escapeHtml(path) + '">' + values.map(function (item) {
+            return '<option value="' + escapeHtml(item) + '"' + (item === value ? " selected" : "") + '>' + escapeHtml(item) + '</option>';
+          }).join("") + '</select>' +
+          '</div>';
+      }
+
+      function section(title, body, note, open) {
+        return '<details class="section"' + (open ? " open" : "") + '><summary class="section-title"><span>' + title + '</span>' + (note ? '<span class="section-note">' + note + '</span>' : '') + '</summary><div class="section-body">' + body + '</div></details>';
+      }
+
+      function renderApp() {
+        var html = '';
+        html += '<div class="topbar"><div class="title-row"><h1>病房新收</h1><div id="savedAt" class="saved-at">' + savedAtText() + '</div></div>';
+        html += '<div class="mode-switch"><button type="button" class="mode-btn' + (state.mode === "internal" ? " active" : "") + '" data-mode="internal">内科模式 Padua</button><button type="button" class="mode-btn' + (state.mode === "surgical" ? " active" : "") + '" data-mode="surgical">外科模式 Caprini</button></div></div>';
+
+        html += section("快捷操作", '<div class="primary-actions"><button type="button" class="action-btn primary" data-command="normal">正常患者一键填充</button><button type="button" class="action-btn green" data-command="generate">一键生成文书</button></div><div class="primary-actions"><button type="button" class="action-btn" data-command="print">导出 PDF / 打印</button><button type="button" class="action-btn" data-command="image">导出图片 PNG</button></div>', "本地草稿自动保存", true);
+
+        html += renderPatientInfo();
+        html += renderFirstRecord();
+        html += renderRiskInputs();
+        if (state.mode === "surgical") html += renderSurgical();
+        html += section("自动评分结果", '<div id="scorePanel">' + renderScores() + '</div>', "由首次护理记录单同步计算", true);
+        html += section("护理记录自动生成", '<div class="record-box" id="recordText">' + escapeHtml(generateNursingRecord()) + '</div><div class="primary-actions" style="margin-top:10px;margin-bottom:0"><button type="button" class="action-btn" data-command="copy">一键复制</button><button type="button" class="action-btn" data-command="refresh">刷新文书</button></div>', "可复制到护理记录");
+        html += section("表格式文书预览", '<div class="print-preview-shell"><div id="printArea" class="print-root">' + buildPrintHtml() + '</div></div>', "导出图片和打印使用此样式");
+
+        document.getElementById("app").innerHTML = html;
+        document.getElementById("printOutput").innerHTML = '<div class="print-root">' + buildPrintHtml() + '</div>';
+      }
+
+      function renderHeaderSavedAt() {
+        var node = document.getElementById("savedAt");
+        if (node) node.textContent = savedAtText();
+      }
+
+      function savedAtText() {
+        return state.lastSavedAt ? "已保存 " + state.lastSavedAt.slice(-8) : "未保存";
+      }
+
+      function renderPatientInfo() {
+        var body = '<div class="grid">';
+        body += field("patientInfo.name", "姓名");
+        body += selectField("patientInfo.gender", "性别", options.gender);
+        body += field("patientInfo.age", "年龄", "number");
+        body += field("patientInfo.nationality", "民族");
+        body += selectField("patientInfo.educationLevel", "教育程度", options.educationLevels);
+        body += field("patientInfo.occupation", "职业");
+        body += field("patientInfo.department", "科室");
+        body += field("patientInfo.bedNo", "床号");
+        body += field("patientInfo.admissionNo", "住院号");
+        body += field("patientInfo.idNo", "身份证号");
+        body += field("patientInfo.phone", "联系电话");
+        body += field("patientInfo.contact", "联系人");
+        body += field("patientInfo.relation", "关系");
+        body += fullField("patientInfo.admissionTime", "入院时间", "datetime-local");
+        body += fullField("patientInfo.diagnosis", "入院诊断", "text", "未填写内容导出时保留空白线");
+        body += '<div class="field full"><label class="field-label">资料来源</label>' + choiceGroup("patientInfo.dataSources", options.dataSources, true, 4) + '</div>';
+        body += '<div class="field full"><label class="field-label">日常照顾者</label>' + choiceGroup("patientInfo.caregivers", options.caregivers, true, 4) + '</div>';
+        body += '<div class="field full"><label class="field-label">医疗费用支付方式</label>' + choiceGroup("patientInfo.paymentMethods", options.paymentMethods, true, 4) + '</div>';
+        body += fullField("patientInfo.nurseName", "护士签名");
+        body += '</div>';
+        return section("患者基本资料", body, "", true);
+      }
+
+      function renderFirstRecord() {
+        var body = '';
+        body += '<div class="field full"><label class="field-label">入院方式</label>' + choiceGroup("firstRecord.admissionMethods", getAdmissionMethods(), true, 4) + '</div>';
+        body += '<div class="field full"><label class="field-label">过敏史</label>' + choiceGroup("firstRecord.allergy", options.allergy, false, 3) + '</div>';
+        if (state.firstRecord.allergy !== "无") {
+          body += '<div class="grid">' + field("firstRecord.allergyDrug", "药物过敏") + field("firstRecord.allergyFood", "食物过敏") + fullField("firstRecord.allergyOther", "其他过敏") + '</div>';
+        }
+        body += '<div class="grid"><div class="field full"><label class="field-label">意识状态：呼之</label>' + choiceGroup("firstRecord.callResponse", options.callResponse, false, 2) + '</div>';
+        body += '<div class="field full"><label class="field-label">意识补充</label>' + choiceGroup("firstRecord.consciousness", options.consciousness, false, 3) + '</div>';
+        body += '<div class="field full"><label class="field-label">对答</label>' + choiceGroup("firstRecord.response", options.response, false, 3) + '</div>';
+        body += field("firstRecord.pupilLeft", "左瞳孔 mm", "number") + field("firstRecord.pupilRight", "右瞳孔 mm", "number");
+        body += '<div class="field full"><label class="field-label">对光反射</label>' + choiceGroup("firstRecord.lightReflex", options.lightReflex, false, 3) + '</div></div>';
+        body += '<div class="field full"><label class="field-label">饮食</label>' + choiceGroup("firstRecord.diet", options.diet, true, 5) + '</div>';
+        body += '<div class="field full"><label class="field-label">口腔黏膜</label>' + choiceGroup("firstRecord.oralMucosa", options.oralMucosa, true, 5) + '</div>';
+        body += '<div class="grid"><div class="field full"><label class="field-label">睡眠</label>' + choiceGroup("firstRecord.sleep", options.sleep, true, 5) + '</div>';
+        body += field("firstRecord.sleepMedication", "睡眠辅助药物");
+        body += '<div class="field"><label class="field-label">醒后疲劳感</label>' + choiceGroup("firstRecord.wakeFatigue", options.riskYesNo, false, 2) + '</div>';
+        body += '<div class="field full"><label class="field-label">排尿</label>' + choiceGroup("firstRecord.urination", options.urination, true, 4) + '</div>';
+        body += '<div class="field full"><label class="field-label">排便</label>' + choiceGroup("firstRecord.bowel", options.bowel, true, 3) + '</div>';
+        body += field("firstRecord.bowelTimes", "排便次数/日", "number") + selectField("firstRecord.nursingLevel", "护理级别", options.nursingLevel);
+        body += selectField("firstRecord.orderedDiet", "医嘱饮食", options.orderedDiet) + field("firstRecord.oxygen", "吸氧/管道");
+        body += '</div>';
+        return section("首次护理记录单", body, "严格按内科/外科模板", true);
+      }
+
+      function getAdmissionMethods() {
+        return state.mode === "surgical" ? options.admissionMethodsSurgical : options.admissionMethodsInternal;
+      }
+
+      function renderRiskInputs() {
+        var body = '<div class="grid">';
+        body += '<div class="field full"><label class="field-label">四肢活动</label>' + choiceGroup("firstRecord.activity", options.activity, true, 6) + '</div>';
+        body += '<div class="field full"><label class="field-label">受限部位</label>' + choiceGroup("firstRecord.affectedParts", options.affectedParts, true, 4) + '</div>';
+        body += '<div class="field full"><label class="field-label">自理能力</label>' + choiceGroup("firstRecord.selfCare", options.selfCare, false, 3) + '</div>';
+        body += '<div class="field full"><label class="field-label">皮肤状况</label>' + choiceGroup("firstRecord.skin", options.skin, true, 6) + '</div>';
+        body += fullField("firstRecord.skinDetail", "皮肤详细描述");
+        body += '<div class="field full"><label class="field-label">语言沟通</label>' + choiceGroup("firstRecord.language", options.language, false, 4) + '</div>';
+        body += '<div class="field full"><label class="field-label">常用语言</label>' + choiceGroup("firstRecord.commonLanguage", options.commonLanguage, false, 3) + '</div>';
+        body += '<div class="field full"><label class="field-label">吸烟史</label>' + choiceGroup("firstRecord.smoking", options.yesNo, false, 2) + '</div>';
+        if (state.firstRecord.smoking === "有") body += field("firstRecord.smokingCount", "吸烟量");
+        body += '<div class="field full"><label class="field-label">饮酒史</label>' + choiceGroup("firstRecord.drinking", options.yesNo, false, 2) + '</div>';
+        if (state.firstRecord.drinking === "有") body += field("firstRecord.drinkingAmount", "饮酒量");
+        body += '<div class="field full"><label class="field-label">住院告知</label>' + choiceGroup("firstRecord.hospitalNotice", options.hospitalNotice, true, 3) + '</div>';
+        body += fullField("firstRecord.recordTime", "记录时间", "datetime-local");
+        body += fullField("patientInfo.nurseName", "责任护士签名");
+        body += fullField("firstRecord.auditTime", "审核时间", "datetime-local");
+        body += fullField("firstRecord.auditorName", "审核人签名");
+        body += '<div class="field full"><label class="field-label">半年内跌倒史</label>' + choiceGroup("firstRecord.fallHistory", options.fallHistory, false, 3) + '</div>';
+        body += '<div class="field full"><label class="field-label">风险补充</label>' +
+          boolChoice("firstRecord.hypertension", "高血压") +
+          boolChoice("firstRecord.diabetes", "糖尿病") +
+          boolChoice("firstRecord.highRiskMedication", "中高危用药") +
+          '</div>';
+        if (state.firstRecord.highRiskMedication === "有") body += fullField("firstRecord.highRiskMedicationNote", "中高危用药备注");
+        body += '<div class="field full"><label class="field-label">跌倒相关因素</label>' + boolButton("firstRecord.visualProblem", "视力障碍") + boolButton("firstRecord.chewingDifficulty", "咀嚼困难") + boolButton("firstRecord.swallowingDifficulty", "吞咽困难") + '</div>';
+        body += field("firstRecord.highRiskMedicationCount", "高危药物种类", "number");
+        body += field("firstRecord.bedRestDays", "卧床天数", "number");
+        body += field("firstRecord.bmi", "BMI", "number");
+        body += '<div class="field full"><label class="field-label">检验异常</label>' + choiceGroup("firstRecord.labAbnormal", options.labAbnormal, true, 4) + '</div>';
+        body += '<div class="field full"><label class="field-label">特殊疾病</label>' + choiceGroup("firstRecord.specialDiseases", options.specialDiseases, true, 4) + '</div>';
+        body += '<div class="field full"><label class="field-label">VTE 风险因素</label>' +
+          boolButton("firstRecord.activeCancer", "活动性肿瘤") +
+          boolButton("firstRecord.previousVte", "既往VTE") +
+          boolButton("firstRecord.thrombophilia", "易栓症") +
+          boolButton("firstRecord.recentTraumaSurgery", "近期创伤/手术") +
+          boolButton("firstRecord.heartRespFailure", "心/呼衰") +
+          boolButton("firstRecord.acuteMiStroke", "急性心梗/脑卒中") +
+          boolButton("firstRecord.infectionRheumatic", "感染/风湿") +
+          boolButton("firstRecord.hormoneTherapy", "激素治疗") +
+          '</div>';
+        if (state.mode === "surgical") {
+          body += '<div class="field full"><label class="field-label">外科 Caprini 项目</label>' + choiceGroup("firstRecord.surgicalRiskItems", options.surgicalRiskItems, true, 3, surgicalRiskLabels) + '</div>';
+        }
+        body += textArea("firstRecord.otherSymptoms", "其他症状体征、详细描述");
+        body += textArea("firstRecord.note", "护理措施备注");
+        body += '</div>';
+        return section("活动、皮肤、生活习惯与风险补充", body, "含新增风险项");
+      }
+
+      function boolButton(path, label) {
+        var active = !!getByPath(state, path);
+        return '<button type="button" class="choice' + (active ? " active" : "") + '" style="min-width:86px;margin:0 6px 6px 0" data-bool="1" data-path="' + escapeHtml(path) + '">' + escapeHtml(label) + '</button>';
+      }
+
+      function boolChoice(path, label) {
+        var value = getByPath(state, path) || "无";
+        return '<span style="display:inline-block;margin:0 8px 8px 0"><span style="display:block;color:#526073;font-size:12px;font-weight:800;margin-bottom:4px">' + label + '</span>' + choiceGroup(path, options.riskYesNo, false, 2) + '</span>';
+      }
+
+      function renderSurgical() {
+        var body = '<div class="grid">';
+        body += '<div class="field full"><label class="field-label">伤口</label>' + choiceGroup("firstRecord.wound.status", options.yesNo, false, 2) + '</div>';
+        if (state.firstRecord.wound.status === "有") {
+          body += field("firstRecord.wound.site", "伤口部位");
+          body += '<div class="field full"><label class="field-label">敷料</label>' + choiceGroup("firstRecord.wound.dressing", options.woundDressing, true, 3) + '</div>';
+        }
+        body += '<div class="field full"><label class="field-label">造瘘</label>' + choiceGroup("firstRecord.stoma.status", options.yesNo, false, 2) + '</div>';
+        if (state.firstRecord.stoma.status === "有") {
+          body += field("firstRecord.stoma.site", "造瘘部位") + field("firstRecord.stoma.type", "造瘘类型") + field("firstRecord.stoma.skin", "造瘘口周围皮肤状况") + '<div class="field full"><label class="field-label">患者自我护理</label>' + choiceGroup("firstRecord.stoma.selfCare", ["能", "否"], false, 2) + '</div>';
+        }
+        body += '<div class="field full"><label class="field-label">引流管</label>' + choiceGroup("firstRecord.drainage.status", options.yesNo, false, 2) + '</div>';
+        if (state.firstRecord.drainage.status === "有") {
+          body += field("firstRecord.drainage.site", "部位") + field("firstRecord.drainage.type", "类型") + '<div class="field full"><label class="field-label">引流通畅</label>' + choiceGroup("firstRecord.drainage.smooth", ["是", "否"], false, 2) + '</div>' + field("firstRecord.drainage.nature", "引流物性状") + field("firstRecord.drainage.color", "颜色");
+        }
+        body += '<div class="field full"><label class="field-label">疼痛</label>' + choiceGroup("firstRecord.pain.status", options.yesNo, false, 2) + '</div>';
+        if (state.firstRecord.pain.status === "有") {
+          body += field("firstRecord.pain.site", "疼痛部位") + '<div class="field full"><label class="field-label">疼痛形式</label>' + choiceGroup("firstRecord.pain.pattern", options.painPattern, false, 2) + '</div>';
+          body += '<div class="field full"><label class="field-label">疼痛程度</label>' + choiceGroup("firstRecord.pain.degree", options.painDegree, false, 3) + '</div>';
+          body += field("firstRecord.pain.nrs", "NRS评分 0-10", "range") + '<div class="field full"><label class="field-label">疼痛性质</label>' + choiceGroup("firstRecord.pain.nature", options.painNature, true, 4) + '</div>';
+        }
+        body += '</div>';
+        return section("外科专属项目", body, "内科模式隐藏");
+      }
+
+      function renderScores() {
+        var scores = getScores();
+        return '<div class="score-grid">' +
+          scoreCard("BADL 自理能力", scores.badl) +
+          scoreCard("Braden 压疮", scores.braden) +
+          scoreCard("跌倒/坠床", scores.fallRisk) +
+          scoreCard(state.mode === "internal" ? "Padua VTE" : "Caprini VTE", scores.vteRisk) +
+          '</div>';
+      }
+
+      function scoreCard(name, result) {
+        var tagClass = result.level.indexOf("高") >= 0 || result.level.indexOf("极") >= 0 ? " danger" : result.level.indexOf("中") >= 0 || result.level.indexOf("低危") >= 0 ? " warn" : "";
+        return '<div class="score-card"><div class="score-name">' + name + '</div><div class="score-value">' + result.total + '<span>分</span></div><span class="risk-tag' + tagClass + '">' + result.level + '</span><ul class="measure-list">' + result.measures.slice(0, 3).map(function (m) { return '<li>√ ' + escapeHtml(m) + '</li>'; }).join("") + '</ul></div>';
+      }
+
+      function calculateBADL(record) {
+        var eating = hasAny(record.diet, ["禁食", "鼻饲", "胃管", "鼻肠管", "经鼻周管", "经鼻肠管", "胃肠造瘘管"]) ? 0 : hasAny(record.diet, ["半流", "流食", "协助进食"]) ? 5 : 10;
+        var bathing = record.selfCare === "完全自理" ? 5 : 0;
+        var grooming = record.selfCare === "完全依赖" || record.selfCare === "完全不能自理" ? 0 : 5;
+        var dressing = record.selfCare === "完全自理" ? 10 : record.selfCare === "部分自理" ? 5 : 0;
+        var bowel = hasAny(record.bowel, ["失禁", "造瘘"]) ? 0 : hasAny(record.bowel, ["便秘", "腹泻"]) ? 5 : 10;
+        var urine = hasAny(record.urination, ["失禁", "尿失禁", "留置尿管", "尿潴留"]) ? 0 : hasAny(record.urination, ["尿频", "尿急", "尿痛"]) ? 5 : 10;
+        var toilet = record.selfCare === "完全自理" ? 10 : record.selfCare === "部分自理" ? 5 : 0;
+        var transfer = hasAny(record.activity, ["卧床", "全瘫", "无法配合"]) ? 0 : hasAny(record.activity, ["活动受限", "偏瘫", "截瘫", "截肢", "无力"]) ? 5 : 15;
+        var walking = hasAny(record.activity, ["卧床", "全瘫", "无法配合"]) ? 0 : hasAny(record.activity, ["活动受限", "偏瘫", "截瘫", "截肢", "无力"]) ? 5 : 15;
+        var stairs = record.selfCare === "完全自理" && hasAny(record.activity, ["正常", "自如"]) ? 10 : record.selfCare === "部分自理" ? 5 : 0;
+        var total = eating + bathing + grooming + dressing + bowel + urine + toilet + transfer + walking + stairs;
+        var level = total < 20 ? "重度依赖" : total <= 40 ? "中度依赖" : total <= 60 ? "轻度依赖" : "无需依赖";
+        return { total: total, level: level, items: { eating: eating, bathing: bathing, grooming: grooming, dressing: dressing, bowel: bowel, urine: urine, toilet: toilet, transfer: transfer, walking: walking, stairs: stairs }, measures: level === "无需依赖" ? ["常规生活指导"] : ["协助生活护理", "加强安全宣教", "必要时留陪护"] };
+      }
+
+      function calculateBraden(record) {
+        var perception = ["昏睡", "浅昏迷", "中昏迷", "深昏迷"].indexOf(record.consciousness) >= 0 ? 1 : record.consciousness === "嗜睡" ? 2 : 4;
+        var moisture = hasAny(record.urination, ["失禁", "尿失禁", "留置尿管"]) || hasAny(record.bowel, ["失禁", "腹泻"]) ? 2 : 4;
+        var activity = hasAny(record.activity, ["卧床", "全瘫"]) ? 1 : hasAny(record.activity, ["活动受限", "偏瘫", "截瘫", "截肢", "无力"]) ? 2 : 4;
+        var mobility = hasAny(record.activity, ["全瘫", "无法配合"]) ? 1 : hasAny(record.activity, ["活动受限", "偏瘫", "截瘫", "截肢", "卧床", "无力"]) ? 2 : 4;
+        var nutrition = hasAny(record.diet, ["禁食", "鼻饲", "胃管", "鼻肠管", "经鼻周管", "经鼻肠管", "胃肠造瘘管"]) ? 1 : hasAny(record.diet, ["流食", "半流", "协助进食"]) ? 2 : 4;
+        var friction = hasAny(record.activity, ["卧床", "偏瘫", "截瘫", "全瘫", "截肢"]) ? 1 : hasAny(record.activity, ["活动受限", "无力"]) ? 2 : 3;
+        var total = perception + moisture + activity + mobility + nutrition + friction;
+        var level = total <= 9 ? "极高危" : total <= 12 ? "高危" : total <= 14 ? "中危" : total <= 18 ? "低危" : "无明显风险";
+        var measures = total <= 18 ? ["翻身减压", "皮肤护理", "保持床单位清洁干燥", "营养支持"].concat(total <= 12 ? ["气垫床", "足跟/肘部减压保护"] : []) : ["常规皮肤观察"];
+        return { total: total, level: level, items: { perception: perception, moisture: moisture, activity: activity, mobility: mobility, nutrition: nutrition, friction: friction }, measures: measures };
+      }
+
+      function calculateFallRisk(patient, record) {
+        var total = 0;
+        var items = {};
+        var age = num(patient.age);
+        if (age >= 80) total += items.age = 10;
+        else if (age >= 70) total += items.age = 2;
+        else if (age >= 60) total += items.age = 1;
+        else items.age = 0;
+        if (record.fallHistory === "两次及以上") total += items.fallHistory = 10;
+        else if (record.fallHistory === "一次") total += items.fallHistory = 2;
+        else items.fallHistory = 0;
+        if (["嗜睡", "昏睡", "浅昏迷", "中昏迷", "深昏迷", "镇静状态"].indexOf(record.consciousness) >= 0 || record.response !== "切题") total += items.mental = 3;
+        else items.mental = 0;
+        if (record.visualProblem) total += items.visual = 1; else items.visual = 0;
+        if (hasAny(record.activity, ["活动受限", "偏瘫", "截瘫", "卧床", "截肢", "无力"])) total += items.activity = 3; else items.activity = 0;
+        if (hasAny(record.urination, ["尿频", "尿急", "失禁", "尿失禁"]) || hasAny(record.bowel, ["腹泻", "失禁"])) total += items.excretion = 2; else items.excretion = 0;
+        if (hasAny(record.sleep, ["失眠", "难入眠", "易醒", "早醒", "多梦"])) total += items.sleep = 1; else items.sleep = 0;
+        if (record.highRiskMedication === "有") total += items.medication = 3;
+        else if (num(record.highRiskMedicationCount) >= 2) total += items.medication = 3;
+        else if (num(record.highRiskMedicationCount) === 1) total += items.medication = 1;
+        else items.medication = 0;
+        if ((record.labAbnormal || []).length) total += items.lab = record.labAbnormal.length; else items.lab = 0;
+        if ((record.specialDiseases || []).length) total += items.special = 10; else items.special = 0;
+        var level = total >= 10 ? "高危" : total >= 3 ? "中危" : total >= 1 ? "低危" : "无明显风险";
+        var measures = total > 0 ? ["床头悬挂跌倒风险警示", "介绍病室环境及安全设施", "指导使用呼叫铃", "穿防滑鞋", "卧床上床栏", "物品放置在易取位置"] : ["常规安全宣教"];
+        return { total: total, level: level, items: items, measures: measures };
+      }
+
+      function calculatePadua(record) {
+        var items = {};
+        var total = 0;
+        if (record.activeCancer) total += items.activeCancer = 3;
+        if (record.previousVte) total += items.previousVte = 3;
+        if (num(record.bedRestDays) >= 3 || hasAny(record.activity, ["卧床", "全瘫"])) total += items.reducedMobility = 3;
+        if (record.thrombophilia) total += items.thrombophilia = 3;
+        if (record.recentTraumaSurgery) total += items.recentTraumaSurgery = 2;
+        if (record.heartRespFailure) total += items.heartRespFailure = 1;
+        if (record.acuteMiStroke) total += items.acuteMiStroke = 1;
+        if (record.infectionRheumatic) total += items.infectionRheumatic = 1;
+        if (num(record.bmi) >= 30) total += items.obesity = 1;
+        if (record.hormoneTherapy) total += items.hormoneTherapy = 1;
+        var level = total >= 4 ? "高危" : "低危";
+        var measures = total >= 4 ? ["基础预防", "踝泵运动", "观察肢端循环", "弹力袜/压力抗栓泵", "遵医嘱抗凝药物"] : ["基础预防", "鼓励活动", "健康宣教"];
+        return { total: total, level: level, items: items, measures: measures };
+      }
+
+      function calculateCaprini(patient, record) {
+        var map = { minorSurgery: 1, recentMajorSurgery: 1, varicoseVein: 1, lungDisease: 1, majorSurgery60: 2, cancerHistory: 2, majorSurgery2to3h: 3, familyVte: 3, stroke: 5, jointReplacement: 5, hipPelvisFracture: 5, trauma: 5, longSurgery: 5 };
+        var items = {};
+        var total = 0;
+        var age = num(patient.age);
+        if (age >= 75) total += items.age = 3;
+        else if (age >= 60) total += items.age = 2;
+        else if (age >= 40) total += items.age = 1;
+        else items.age = 0;
+        (record.surgicalRiskItems || []).forEach(function (item) {
+          var score = map[item] || 0;
+          total += score;
+          items[item] = score;
+        });
+        if (num(record.bmi) >= 30) total += items.bmi = num(record.bmi) >= 40 ? 2 : 1;
+        if (record.hormoneTherapy) total += items.hormone = 1;
+        if (record.previousVte) total += items.previousVte = 3;
+        if (record.activeCancer) total += items.activeCancer = 3;
+        if (record.thrombophilia) total += items.thrombophilia = 3;
+        var level = total >= 5 ? "高危" : total >= 3 ? "中危" : total >= 1 ? "低危" : "无明显风险";
+        var measures = total >= 5 ? ["基础预防", "物理预防", "遵医嘱药物预防", "每3天评估1次"] : total >= 3 ? ["基础预防", "物理预防", "每周评估1次"] : ["基础预防", "鼓励活动"];
+        return { total: total, level: level, items: items, measures: measures };
+      }
+
+      function getScores() {
+        return {
+          badl: calculateBADL(state.firstRecord),
+          braden: calculateBraden(state.firstRecord),
+          fallRisk: calculateFallRisk(state.patientInfo, state.firstRecord),
+          vteRisk: state.mode === "internal" ? calculatePadua(state.firstRecord) : calculateCaprini(state.patientInfo, state.firstRecord)
+        };
+      }
+
+      function generateNursingRecord() {
+        var p = state.patientInfo;
+        var r = state.firstRecord;
+        var scores = getScores();
+        var admission = arrText(r.admissionMethods) || "步行";
+        var diet = r.orderedDiet || arrText(r.diet) || "____";
+        var diagnosis = p.diagnosis || "__________";
+        var consciousness = r.consciousness === "清醒" ? "清楚" : (r.consciousness || "清楚");
+        var pupil = formatPupilDiameter(r.pupilLeft, r.pupilRight);
+        var fallRisk = formatRisk(scores.fallRisk.level);
+        var bradenRisk = formatRisk(scores.braden.level);
+        var text = renderNursingTemplate(state.mode === "internal" ? nursingRecordTemplates.internal : nursingRecordTemplates.surgical, {
+          diagnosis: diagnosis,
+          admission: admission,
+          consciousness: consciousness,
+          lightReflex: r.lightReflex || "灵敏",
+          pupilDiameter: pupil,
+          nursingLevel: r.nursingLevel || "__级护理",
+          diet: diet,
+          fallScore: String(scores.fallRisk.total),
+          fallRisk: fallRisk,
+          bradenScore: String(scores.braden.total),
+          bradenRisk: bradenRisk
+        });
+        if (r.note) text += "补充：" + r.note;
+        state.generatedRecord = text;
+        return text;
+      }
+
+      function formatRisk(level) {
+        if (String(level).indexOf("极高") >= 0) return "极高";
+        if (String(level).indexOf("高") >= 0) return "高";
+        if (String(level).indexOf("中") >= 0) return "中";
+        if (String(level).indexOf("低") >= 0) return "低";
+        return "无明显";
+      }
+
+      function formatPupilDiameter(left, right) {
+        var leftText = formatPupilValue(left);
+        var rightText = formatPupilValue(right);
+        if (leftText && rightText && leftText !== rightText) return "左" + leftText + "mm、右" + rightText + "mm";
+        return (leftText || rightText || "    ") + "mm";
+      }
+
+      function formatPupilValue(value) {
+        var parsed = Number(value);
+        if (!parsed) return "";
+        return Number.isInteger(parsed) ? parsed.toFixed(1) : String(value);
+      }
+
+      function renderNursingTemplate(template, values) {
+        return template.replace(/\{(\w+)\}/g, function (_, key) {
+          return values[key] || "";
+        });
+      }
+
+      function checkLine(label, values, selected) {
+        return values.map(function (v) {
+          var checked = Array.isArray(selected) ? selected.indexOf(v) >= 0 : selected === v;
+          return '<span class="check">' + (checked ? "√" : "□") + escapeHtml(label ? label[v] || v : v) + '</span>';
+        }).join("");
+      }
+
+      function valueLine(value, width) {
+        return '<span class="print-line" style="min-width:' + (width || 84) + 'px">' + escapeHtml(value || "") + '</span>';
+      }
+
+      function patientHeaderRows() {
+        var p = state.patientInfo;
+        return '<table class="doc-table"><colgroup><col style="width:10%"><col style="width:15%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:18%"></colgroup><tr><td>姓名</td><td>' + valueLine(p.name, 70) + '</td><td>性别</td><td>' + valueLine(p.gender, 38) + '</td><td>年龄</td><td>' + valueLine(p.age, 42) + '</td><td>科室</td><td>' + valueLine(p.department, 64) + '</td><td>床号 ' + valueLine(p.bedNo, 44) + '</td></tr><tr><td>住院号</td><td colspan="2">' + valueLine(p.admissionNo, 110) + '</td><td>诊断</td><td colspan="3">' + valueLine(p.diagnosis, 190) + '</td><td>入院时间</td><td>' + valueLine(p.admissionTime ? p.admissionTime.replace("T", " ") : "", 102) + '</td></tr></table>';
+      }
+
+      function buildPrintHtml() {
+        return firstRecordPage() + badlPage() + educationPage() + bradenPage() + fallPage() + vtePage() + recordPage();
+      }
+
+      function firstRecordPage() {
+        var p = state.patientInfo;
+        var r = state.firstRecord;
+        var title = state.mode === "internal" ? "首次护理记录单（内科）" : "首次护理记录单（外科）";
+        var html = '<section class="paper"><h2 class="print-title">' + title + '</h2>' + patientHeaderRows();
+        html += '<table class="doc-table"><tr><th colspan="4">基本资料</th></tr>';
+        html += '<tr><td style="width:16%">职业</td><td>' + valueLine(p.occupation, 80) + '</td><td style="width:16%">民族/宗教</td><td>' + valueLine(p.nationality, 80) + '</td></tr>';
+        html += '<tr><td>教育程度</td><td>' + checkLine(null, options.educationLevels, p.educationLevel) + '</td><td>资料来源</td><td>' + checkLine(null, options.dataSources, p.dataSources) + '</td></tr>';
+        html += '<tr><td>日常照顾者</td><td colspan="3">' + checkLine(null, options.caregivers, p.caregivers) + '</td></tr>';
+        html += '<tr><td>入院方式</td><td colspan="3">' + checkLine(null, getAdmissionMethods(), r.admissionMethods) + '</td></tr>';
+        html += '<tr><td>过敏史</td><td colspan="3">' + checkLine(null, options.allergy, r.allergy) + ' 药物：' + valueLine(r.allergyDrug, 78) + ' 食物：' + valueLine(r.allergyFood, 78) + ' 其他：' + valueLine(r.allergyOther, 78) + '</td></tr>';
+        html += '<tr><td>医疗费用支付方式</td><td colspan="3">' + checkLine(null, options.paymentMethods, p.paymentMethods) + '</td></tr>';
+        html += '<tr><th colspan="4">护理评估</th></tr>';
+        html += '<tr><td>意识状态</td><td>呼之 ' + checkLine(null, options.callResponse, r.callResponse) + '</td><td>对答</td><td>' + checkLine(null, options.response, r.response) + '</td></tr>';
+        html += '<tr><td>瞳孔</td><td>左 ' + valueLine(r.pupilLeft, 32) + ' mm 右 ' + valueLine(r.pupilRight, 32) + ' mm</td><td>对光反射</td><td>' + checkLine(null, options.lightReflex, r.lightReflex) + '</td></tr>';
+        html += '<tr><td>饮食</td><td colspan="3">' + checkLine(null, options.diet, r.diet) + ' 咀嚼困难：' + checkLine(null, options.riskYesNo, r.chewingDifficulty ? "有" : "无") + '</td></tr>';
+        html += '<tr><td>口腔黏膜</td><td colspan="3">' + checkLine(null, options.oralMucosa, r.oralMucosa) + ' 吞咽困难：' + checkLine(null, options.riskYesNo, r.swallowingDifficulty ? "有" : "无") + '</td></tr>';
+        html += '<tr><td>睡眠</td><td colspan="3">' + checkLine(null, options.sleep, r.sleep) + ' 使用辅助药物：' + valueLine(r.sleepMedication, 90) + ' 醒后疲劳感：' + checkLine(null, options.riskYesNo, r.wakeFatigue) + '</td></tr>';
+        html += '<tr><td>排尿</td><td>' + checkLine(null, options.urination, r.urination) + '</td><td>排便</td><td>' + checkLine(null, options.bowel, r.bowel) + ' 次/日：' + valueLine(r.bowelTimes, 36) + '</td></tr>';
+        html += '<tr><td>四肢活动</td><td>' + checkLine(null, options.activity, r.activity) + ' 部位：' + checkLine(null, options.affectedParts, r.affectedParts) + '</td><td>自理能力</td><td>' + checkLine(null, options.selfCare, r.selfCare) + '</td></tr>';
+        html += '<tr><td>皮肤状况</td><td colspan="3">' + checkLine(null, options.skin, r.skin) + ' 详细描述：' + valueLine(r.skinDetail, 220) + '</td></tr>';
+        html += '<tr><td>语言沟通</td><td>最常用语言/语种：' + valueLine(r.commonLanguage, 80) + ' 表达：' + checkLine(null, options.language, r.language) + '</td><td>生活习惯</td><td>吸烟：' + checkLine(null, options.yesNo, r.smoking) + valueLine(r.smokingCount, 28) + '支/天；嗜酒：' + checkLine(null, options.yesNo, r.drinking) + valueLine(r.drinkingAmount, 28) + '两/天</td></tr>';
+        if (state.mode === "surgical") {
+          html += '<tr><th colspan="4">外科专属项目</th></tr>';
+          html += '<tr><td>伤口</td><td>' + checkLine(null, options.yesNo, r.wound.status) + ' 部位：' + valueLine(r.wound.site, 80) + '</td><td>敷料</td><td>' + checkLine(null, options.woundDressing, r.wound.dressing) + '</td></tr>';
+          html += '<tr><td>造瘘</td><td>' + checkLine(null, options.yesNo, r.stoma.status) + ' 部位：' + valueLine(r.stoma.site, 70) + ' 类型：' + valueLine(r.stoma.type, 70) + '</td><td>造瘘口周围皮肤/自护</td><td>' + valueLine(r.stoma.skin, 70) + ' 自护：' + checkLine(null, ["能", "否"], r.stoma.selfCare) + '</td></tr>';
+          html += '<tr><td>留置引流管</td><td>' + checkLine(null, options.yesNo, r.drainage.status) + ' 部位：' + valueLine(r.drainage.site, 60) + ' 类型：' + valueLine(r.drainage.type, 60) + '</td><td>引流</td><td>通畅：' + checkLine(null, ["是", "否"], r.drainage.smooth) + ' 性状：' + valueLine(r.drainage.nature, 55) + ' 颜色：' + valueLine(r.drainage.color, 55) + '</td></tr>';
+          html += '<tr><td>疼痛</td><td colspan="3">' + checkLine(null, options.yesNo, r.pain.status) + ' 部位：' + valueLine(r.pain.site, 70) + checkLine(null, options.painPattern, r.pain.pattern) + ' 程度：' + checkLine(null, options.painDegree, r.pain.degree) + ' 性质：' + checkLine(null, options.painNature, r.pain.nature) + '</td></tr>';
+        }
+        html += '<tr><td>风险补充</td><td colspan="3">半年内跌倒史：' + checkLine(null, options.fallHistory, r.fallHistory) + ' 高血压：' + checkLine(null, options.riskYesNo, r.hypertension) + ' 糖尿病：' + checkLine(null, options.riskYesNo, r.diabetes) + ' 中高危用药：' + checkLine(null, options.riskYesNo, r.highRiskMedication) + ' ' + valueLine(r.highRiskMedicationNote, 130) + '</td></tr>';
+        html += '<tr><td>住院告知</td><td colspan="3">' + checkLine(null, options.hospitalNotice, r.hospitalNotice) + '</td></tr>';
+        html += '<tr><td>补充记录</td><td colspan="3" style="height:58px">' + escapeHtml(r.otherSymptoms || "") + '</td></tr></table>';
+        html += '<div class="signature-row"><span>记录时间：' + valueLine(r.recordTime ? r.recordTime.replace("T", " ") : "", 108) + '</span><span>责任护士签名：' + valueLine(p.nurseName, 80) + '</span><span>审核时间：' + valueLine(r.auditTime ? r.auditTime.replace("T", " ") : "", 108) + '</span><span>审核人签名：' + valueLine(r.auditorName, 80) + '</span></div></section>';
+        return html;
+      }
+
+      function badlPage() {
+        var s = getScores().badl;
+        var names = { eating: "进食", bathing: "洗澡", grooming: "修饰", dressing: "穿衣", bowel: "大便控制", urine: "小便控制", toilet: "如厕", transfer: "床椅转移", walking: "平地行走", stairs: "上下楼梯" };
+        var html = '<section class="paper"><h2 class="print-title">基本生活活动能力（BADL）评定量表</h2>' + patientHeaderRows();
+        html += '<table class="doc-table"><tr><th>项目</th><th>评分</th><th>评定说明</th></tr>';
+        Object.keys(names).forEach(function (key) {
+          html += '<tr><td>' + names[key] + '</td><td style="text-align:center;font-weight:900">' + s.items[key] + '</td><td>按首次护理评估中饮食、排泄、活动及自理能力自动换算，打印后可手写修正。</td></tr>';
+        });
+        html += '<tr><th>总分</th><th>' + s.total + '</th><th>等级：' + s.level + '</th></tr></table>';
+        html += '<table class="doc-table"><tr><th>护理措施</th></tr><tr><td>' + s.measures.map(function (m) { return '<span class="check">√' + m + '</span>'; }).join("") + '</td></tr></table>';
+        html += '<div class="signature-row"><span>护士签名：' + valueLine(state.patientInfo.nurseName, 80) + '</span><span>日期：' + valueLine(todayText(), 92) + '</span></div></section>';
+        return html;
+      }
+
+      function educationPage() {
+        var rows = ["病区环境", "住院制度", "安全注意事项", "疾病知识", "饮食", "检查", "治疗", "用药", "功能锻炼", "出院指导"];
+        var html = '<section class="paper"><h2 class="print-title">健康教育宣教评估单</h2>' + patientHeaderRows();
+        html += '<table class="doc-table"><tr><th style="width:23%">宣教内容</th><th style="width:18%">日期时间</th><th>方式</th><th>结果</th><th style="width:16%">护士签名</th></tr>';
+        rows.forEach(function (item) {
+          html += '<tr><td>' + item + '</td><td>' + valueLine(state.patientInfo.admissionTime ? state.patientInfo.admissionTime.replace("T", " ") : "", 90) + '</td><td>√讲解 □示范 □书面</td><td>√接受 □部分接受 □未接受</td><td>' + valueLine(state.patientInfo.nurseName, 62) + '</td></tr>';
+        });
+        html += '</table><div class="muted-print">备注：未填写内容保留空白线，方便打印后补充。</div></section>';
+        return html;
+      }
+
+      function bradenPage() {
+        var s = getScores().braden;
+        var names = { perception: "感知能力", moisture: "潮湿程度", activity: "活动能力", mobility: "移动能力", nutrition: "营养", friction: "摩擦/剪切力" };
+        var html = '<section class="paper"><h2 class="print-title">Braden 压疮风险护理单</h2>' + patientHeaderRows();
+        html += '<table class="doc-table"><tr><th>项目</th><th>评分</th><th>依据</th></tr>';
+        Object.keys(names).forEach(function (key) {
+          html += '<tr><td>' + names[key] + '</td><td style="text-align:center;font-weight:900">' + s.items[key] + '</td><td>根据意识、排泄、活动、营养等首次评估内容自动生成。</td></tr>';
+        });
+        html += '<tr><th>总分</th><th>' + s.total + '</th><th>风险等级：' + s.level + '</th></tr></table>';
+        html += '<table class="doc-table"><tr><th>压疮风险护理措施</th></tr><tr><td>' + s.measures.map(function (m) { return '<span class="check">√' + m + '</span>'; }).join("") + '<br>其他：' + valueLine(state.firstRecord.note, 420) + '</td></tr></table></section>';
+        return html;
+      }
+
+      function fallPage() {
+        var s = getScores().fallRisk;
+        var html = '<section class="paper"><h2 class="print-title">跌倒/坠床风险评估与护理单</h2>' + patientHeaderRows();
+        html += '<table class="doc-table"><tr><th>风险项目</th><th>得分</th><th>护理记录依据</th></tr>';
+        var labels = { age: "年龄", fallHistory: "半年内跌倒史", mental: "意识/对答", visual: "视力障碍", activity: "活动能力", excretion: "排泄异常", sleep: "睡眠", medication: "中高危用药", lab: "检验异常", special: "特殊疾病" };
+        Object.keys(labels).forEach(function (key) {
+          html += '<tr><td>' + labels[key] + '</td><td style="text-align:center;font-weight:900">' + (s.items[key] || 0) + '</td><td>' + valueLine("", 330) + '</td></tr>';
+        });
+        html += '<tr><th>总分</th><th>' + s.total + '</th><th>风险等级：' + s.level + '</th></tr></table>';
+        html += '<table class="doc-table"><tr><th>风险补充</th></tr><tr><td>高血压：' + checkLine(null, options.riskYesNo, state.firstRecord.hypertension) + ' 糖尿病：' + checkLine(null, options.riskYesNo, state.firstRecord.diabetes) + ' 中高危用药：' + checkLine(null, options.riskYesNo, state.firstRecord.highRiskMedication) + ' 备注：' + valueLine(state.firstRecord.highRiskMedicationNote, 260) + '</td></tr></table>';
+        html += '<table class="doc-table"><tr><th>跌倒/坠床护理措施</th></tr><tr><td>' + s.measures.map(function (m) { return '<span class="check">√' + m + '</span>'; }).join("") + '</td></tr></table>';
+        html += '<div class="signature-row"><span>患者/家属签名：' + valueLine("", 100) + '</span><span>护士签名：' + valueLine(state.patientInfo.nurseName, 80) + '</span></div></section>';
+        return html;
+      }
+
+      function vtePage() {
+        var s = getScores().vteRisk;
+        var isInternal = state.mode === "internal";
+        var html = '<section class="paper"><h2 class="print-title">' + (isInternal ? "内科住院患者静脉血栓风险评估表（Padua）护理单" : "外科住院患者静脉血栓风险评估表（Caprini）护理单") + '</h2>' + patientHeaderRows();
+        html += '<table class="doc-table"><tr><th>评估项目</th><th>勾选/得分</th><th>说明</th></tr>';
+        if (isInternal) {
+          var rows = [["活动性肿瘤", "activeCancer"], ["既往VTE", "previousVte"], ["活动减少/卧床", "reducedMobility"], ["易栓症", "thrombophilia"], ["近期创伤/手术", "recentTraumaSurgery"], ["心/呼吸衰竭", "heartRespFailure"], ["急性心梗/脑卒中", "acuteMiStroke"], ["感染/风湿", "infectionRheumatic"], ["BMI>=30", "obesity"], ["激素治疗", "hormoneTherapy"]];
+          rows.forEach(function (row) {
+            html += '<tr><td>' + row[0] + '</td><td style="text-align:center">' + (s.items[row[1]] ? "√ " + s.items[row[1]] + "分" : "□") + '</td><td>' + valueLine("", 330) + '</td></tr>';
+          });
+        } else {
+          html += '<tr><td>年龄</td><td style="text-align:center">' + (s.items.age || 0) + '分</td><td>按年龄自动计算</td></tr>';
+          options.surgicalRiskItems.forEach(function (key) {
+            html += '<tr><td>' + surgicalRiskLabels[key] + '</td><td style="text-align:center">' + (s.items[key] ? "√ " + s.items[key] + "分" : "□") + '</td><td>' + valueLine("", 330) + '</td></tr>';
+          });
+        }
+        html += '<tr><th>总分</th><th>' + s.total + '</th><th>风险等级：' + s.level + '</th></tr></table>';
+        html += '<table class="doc-table"><tr><th>VTE 护理措施</th></tr><tr><td>' + s.measures.map(function (m) { return '<span class="check">√' + m + '</span>'; }).join("") + '</td></tr></table></section>';
+        return html;
+      }
+
+      function recordPage() {
+        var html = '<section class="paper"><h2 class="print-title">护理记录与告知书</h2>' + patientHeaderRows();
+        html += '<table class="doc-table"><tr><th>跌倒/坠床风险告知</th></tr><tr><td style="height:92px">已向患者及家属告知跌倒/坠床风险、呼叫铃使用、防滑鞋、床栏、陪护及环境安全注意事项。患者/家属签名：' + valueLine("", 110) + ' 护士签名：' + valueLine(state.patientInfo.nurseName, 80) + '</td></tr></table>';
+        html += '<table class="doc-table"><tr><th>压疮风险告知</th></tr><tr><td style="height:92px">已向患者及家属告知皮肤保护、翻身减压、保持床单位清洁干燥、营养支持及压疮预防措施。患者/家属签名：' + valueLine("", 110) + ' 护士签名：' + valueLine(state.patientInfo.nurseName, 80) + '</td></tr></table>';
+        html += '<table class="doc-table"><tr><th>护理记录</th></tr><tr><td style="height:180px;line-height:1.8">' + escapeHtml(generateNursingRecord()) + '</td></tr></table>';
+        html += '<div class="signature-row"><span>护士签名：' + valueLine(state.patientInfo.nurseName, 80) + '</span><span>日期：' + valueLine(todayText(), 92) + '</span></div></section>';
+        return html;
+      }
+
+      function todayText() {
+        var d = new Date();
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+      }
+
+      function fillNormalTemplate() {
+        var prev = snapshot();
+        state.firstRecord.admissionMethods = ["步行"];
+        state.firstRecord.allergy = "无";
+        state.firstRecord.allergyDrug = "";
+        state.firstRecord.allergyFood = "";
+        state.firstRecord.allergyOther = "";
+        state.firstRecord.callResponse = "能应";
+        state.firstRecord.consciousness = "清醒";
+        state.firstRecord.response = "切题";
+        state.firstRecord.pupilLeft = "3";
+        state.firstRecord.pupilRight = "3";
+        state.firstRecord.lightReflex = "灵敏";
+        state.firstRecord.diet = ["自行进食"];
+        state.firstRecord.chewingDifficulty = false;
+        state.firstRecord.swallowingDifficulty = false;
+        state.firstRecord.oralMucosa = ["完整"];
+        state.firstRecord.sleep = ["正常"];
+        state.firstRecord.sleepMedication = "";
+        state.firstRecord.wakeFatigue = "无";
+        state.firstRecord.urination = ["未发现异常"];
+        state.firstRecord.bowel = ["正常"];
+        state.firstRecord.activity = ["自如"];
+        state.firstRecord.affectedParts = [];
+        state.firstRecord.selfCare = "完全自理";
+        state.firstRecord.skin = ["完整"];
+        state.firstRecord.skinDetail = "";
+        state.firstRecord.language = "清楚";
+        state.firstRecord.smoking = "无";
+        state.firstRecord.drinking = "无";
+        state.firstRecord.fallHistory = "无";
+        state.firstRecord.hypertension = "无";
+        state.firstRecord.diabetes = "无";
+        state.firstRecord.highRiskMedication = "无";
+        state.firstRecord.highRiskMedicationNote = "";
+        state.firstRecord.visualProblem = false;
+        state.firstRecord.highRiskMedicationCount = "0";
+        state.firstRecord.labAbnormal = [];
+        state.firstRecord.specialDiseases = [];
+        state.firstRecord.activeCancer = false;
+        state.firstRecord.previousVte = false;
+        state.firstRecord.bedRestDays = "0";
+        state.firstRecord.thrombophilia = false;
+        state.firstRecord.recentTraumaSurgery = false;
+        state.firstRecord.heartRespFailure = false;
+        state.firstRecord.acuteMiStroke = false;
+        state.firstRecord.infectionRheumatic = false;
+        state.firstRecord.hormoneTherapy = false;
+        state.firstRecord.surgicalRiskItems = [];
+        state.firstRecord.wound = { status: "无", site: "", dressing: ["干燥"] };
+        state.firstRecord.stoma = { status: "无", type: "", site: "", skin: "", selfCare: "能" };
+        state.firstRecord.drainage = { status: "无", type: "", site: "", color: "", nature: "", smooth: "是" };
+        state.firstRecord.pain = { status: "无", site: "", nrs: "0", pattern: "间歇性", degree: "轻度", nature: [] };
+        pushHistory(prev);
+        saveDraft(false);
+        renderApp();
+        toast("正常模板已填充");
+      }
+
+      function copyRecord() {
+        var text = generateNursingRecord();
+        navigator.clipboard && navigator.clipboard.writeText(text).then(function () {
+          toast("护理记录已复制");
+        }).catch(function () {
+          fallbackCopy(text);
+        });
+      }
+
+      function fallbackCopy(text) {
+        var area = document.createElement("textarea");
+        area.value = text;
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        document.body.removeChild(area);
+        toast("护理记录已复制");
+      }
+
+      function printPdf() {
+        document.getElementById("printOutput").innerHTML = '<div class="print-root">' + buildPrintHtml() + '</div>';
+        setTimeout(function () { window.print(); }, 80);
+      }
+
+      function exportImage() {
+        var source = document.getElementById("printArea");
+        if (!source) {
+          toast("请先生成预览");
+          return;
+        }
+        var css = document.querySelector("style").textContent;
+        var cloneNode = source.cloneNode(true);
+        cloneNode.style.margin = "0";
+        cloneNode.style.width = "794px";
+        var width = 794;
+        var height = Math.max(source.scrollHeight, 1123);
+        var html = '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '">' +
+          '<foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><style>' + css + '</style>' + cloneNode.outerHTML + '</div></foreignObject></svg>';
+        var blob = new Blob([html], { type: "image/svg+xml;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var img = new Image();
+        img.onload = function () {
+          var canvas = document.createElement("canvas");
+          canvas.width = width * 2;
+          canvas.height = height * 2;
+          var ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.scale(2, 2);
+          ctx.drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+          var a = document.createElement("a");
+          var name = safe(state.patientInfo.name, "新收病人") + "_护理文书.png";
+          a.download = name;
+          a.href = canvas.toDataURL("image/png");
+          a.click();
+          toast("图片已生成");
+        };
+        img.onerror = function () {
+          URL.revokeObjectURL(url);
+          toast("图片生成失败，请改用打印PDF");
+        };
+        img.src = url;
+      }
+
+      function updateDerivedOnly() {
+        var scorePanel = document.getElementById("scorePanel");
+        if (scorePanel) scorePanel.innerHTML = renderScores();
+        var recordText = document.getElementById("recordText");
+        if (recordText) recordText.textContent = generateNursingRecord();
+        var printArea = document.getElementById("printArea");
+        if (printArea) printArea.innerHTML = buildPrintHtml();
+        document.getElementById("printOutput").innerHTML = '<div class="print-root">' + buildPrintHtml() + '</div>';
+      }
+
+      function bindEvents() {
+        document.body.addEventListener("click", function (event) {
+          var modeBtn = event.target.closest("[data-mode]");
+          if (modeBtn) {
+            var prevMode = snapshot();
+            state.mode = modeBtn.dataset.mode;
+            pushHistory(prevMode);
+            saveDraft(false);
+            renderApp();
+            return;
+          }
+
+          var choice = event.target.closest("[data-choice]");
+          if (choice) {
+            var prevChoice = snapshot();
+            var path = choice.dataset.path;
+            var value = choice.dataset.value;
+            var multiple = choice.dataset.multiple === "1";
+            var current = getByPath(state, path);
+            if (multiple) {
+              var list = Array.isArray(current) ? current.slice() : [];
+              var index = list.indexOf(value);
+              if (index >= 0) list.splice(index, 1); else list.push(value);
+              setByPath(state, path, list);
+            } else {
+              setByPath(state, path, value);
+            }
+            pushHistory(prevChoice);
+            saveDraft(false);
+            renderApp();
+            return;
+          }
+
+          var bool = event.target.closest("[data-bool]");
+          if (bool) {
+            var prevBool = snapshot();
+            var boolPath = bool.dataset.path;
+            setByPath(state, boolPath, !getByPath(state, boolPath));
+            pushHistory(prevBool);
+            saveDraft(false);
+            renderApp();
+            return;
+          }
+
+          var command = event.target.closest("[data-command]");
+          if (command) runCommand(command.dataset.command);
+        });
+
+        document.body.addEventListener("focusin", function (event) {
+          if (event.target.matches("[data-bind]")) focusSnapshot = snapshot();
+        });
+
+        document.body.addEventListener("input", function (event) {
+          var target = event.target;
+          if (!target.matches("[data-bind]")) return;
+          setByPath(state, target.dataset.bind, target.value);
+          updateDerivedOnly();
+        });
+
+        document.body.addEventListener("change", function (event) {
+          var target = event.target;
+          if (!target.matches("[data-bind]")) return;
+          setByPath(state, target.dataset.bind, target.value);
+          pushHistory(focusSnapshot);
+          saveDraft(false);
+          renderApp();
+        });
+      }
+
+      function runCommand(command) {
+        if (command === "save") return saveDraft(true);
+        if (command === "normal") return fillNormalTemplate();
+        if (command === "generate" || command === "refresh") {
+          generateNursingRecord();
+          saveDraft(false);
+          renderApp();
+          return toast("文书已生成");
+        }
+        if (command === "copy") return copyRecord();
+        if (command === "print") return printPdf();
+        if (command === "image") return exportImage();
+        if (command === "undo") {
+          if (!historyStack.length) return toast("没有可撤销内容");
+          redoStack.push(snapshot());
+          restoreFromSnapshot(historyStack.pop());
+          saveDraft(false);
+          renderApp();
+          return toast("已撤销");
+        }
+        if (command === "redo") {
+          if (!redoStack.length) return toast("没有可恢复内容");
+          historyStack.push(snapshot());
+          restoreFromSnapshot(redoStack.pop());
+          saveDraft(false);
+          renderApp();
+          return toast("已恢复");
+        }
+        if (command === "clear") {
+          if (!confirm("确认清空全部已填写内容？")) return;
+          pushHistory(snapshot());
+          state = createDefaultState();
+          localStorage.removeItem(STORAGE_KEY);
+          renderApp();
+          return toast("已清空");
+        }
+      }
+
+      bindEvents();
+      renderApp();
+      setInterval(function () { saveDraft(false); }, 10000);
+    })();
+  </script>
+</body>
+</html>
